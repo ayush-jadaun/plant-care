@@ -1,5 +1,10 @@
 "use client";
 
+import { Card, CardContent } from "@/components/ui/card";
+import { Progress } from "@/components/ui/progress";
+import { Thermometer, Droplets, Sprout, Sun } from "lucide-react";
+import { cn } from "@/lib/utils";
+
 interface SensorCardProps {
   label: string;
   value: string;
@@ -9,10 +14,24 @@ interface SensorCardProps {
   history: number[];
 }
 
+const ICON_MAP: Record<string, React.ComponentType<{ className?: string }>> = {
+  "🌡️": Thermometer,
+  "💧": Droplets,
+  "🌍": Sprout,
+  "☀️": Sun,
+};
+
+const ACCENT_MAP: Record<string, { color: string; class: string }> = {
+  "🌡️": { color: "#f59e0b", class: "text-sensor-amber" },
+  "💧": { color: "#38bdf8", class: "text-sensor-sky" },
+  "🌍": { color: "#a78bfa", class: "text-sensor-violet" },
+  "☀️": { color: "#fb923c", class: "text-sensor-orange" },
+};
+
 function getStatusColor(score: number): string {
-  if (score >= 70) return "#22c55e";
-  if (score >= 40) return "#eab308";
-  return "#ef4444";
+  if (score >= 70) return "var(--color-sensor-green)";
+  if (score >= 40) return "var(--color-sensor-amber)";
+  return "var(--color-sensor-rose)";
 }
 
 function Sparkline({ data, color }: { data: number[]; color: string }) {
@@ -21,21 +40,34 @@ function Sparkline({ data, color }: { data: number[]; color: string }) {
   const min = Math.min(...data);
   const range = max - min || 1;
   const width = 120;
-  const height = 40;
+  const height = 36;
+  const padding = 2;
 
   const points = data.map((v, i) => {
     const x = (i / (data.length - 1)) * width;
-    const y = height - ((v - min) / range) * height;
+    const y = padding + (height - 2 * padding) - ((v - min) / range) * (height - 2 * padding);
     return `${x},${y}`;
   });
 
+  const areaPoints = `0,${height} ${points.join(" ")} ${width},${height}`;
+
   return (
-    <svg width={width} height={height} className="mt-2">
+    <svg width={width} height={height} className="mt-3 opacity-60">
+      <defs>
+        <linearGradient id={`grad-${color.replace(/[^a-z0-9]/gi, "")}`} x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor={color} stopOpacity="0.3" />
+          <stop offset="100%" stopColor={color} stopOpacity="0" />
+        </linearGradient>
+      </defs>
+      <polygon
+        points={areaPoints}
+        fill={`url(#grad-${color.replace(/[^a-z0-9]/gi, "")})`}
+      />
       <polyline
         points={points.join(" ")}
         fill="none"
         stroke={color}
-        strokeWidth="2"
+        strokeWidth="1.5"
         strokeLinecap="round"
         strokeLinejoin="round"
       />
@@ -44,33 +76,55 @@ function Sparkline({ data, color }: { data: number[]; color: string }) {
 }
 
 export default function SensorCard({ label, value, unit, icon, score, history }: SensorCardProps) {
-  const color = getStatusColor(score);
+  const statusColor = getStatusColor(score);
+  const accent = ACCENT_MAP[icon] || { color: "#94a3b8", class: "text-muted-foreground" };
+  const IconComponent = ICON_MAP[icon];
 
   return (
-    <div
-      className="rounded-2xl p-5 flex flex-col items-center transition-all duration-500"
-      style={{
-        background: `linear-gradient(135deg, ${color}15, ${color}08)`,
-        border: `2px solid ${color}40`,
-        boxShadow: `0 4px 24px ${color}15`,
-      }}
-    >
-      <span className="text-3xl mb-2">{icon}</span>
-      <span className="text-sm text-gray-400 uppercase tracking-wide">{label}</span>
-      <span className="text-3xl font-bold mt-1" style={{ color }}>
-        {value}
-        <span className="text-lg font-normal ml-1">{unit}</span>
-      </span>
-      <Sparkline data={history} color={color} />
-      <div
-        className="mt-2 w-full h-1.5 rounded-full overflow-hidden"
-        style={{ background: `${color}20` }}
-      >
+    <Card className="group relative overflow-hidden border-border/50 bg-card/50 backdrop-blur-sm hover:border-border transition-all duration-300">
+      <CardContent className="flex flex-col items-center pt-5 pb-4">
         <div
-          className="h-full rounded-full transition-all duration-1000"
-          style={{ width: `${score}%`, background: color }}
-        />
-      </div>
-    </div>
+          className={cn(
+            "flex items-center justify-center size-10 rounded-xl mb-3 transition-colors",
+          )}
+          style={{
+            backgroundColor: `color-mix(in oklch, ${accent.color}, transparent 88%)`,
+          }}
+        >
+          {IconComponent ? (
+            <span style={{ color: accent.color }}>
+              <IconComponent className="size-5" />
+            </span>
+          ) : (
+            <span className="text-xl">{icon}</span>
+          )}
+        </div>
+
+        <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+          {label}
+        </span>
+
+        <div className="flex items-baseline gap-1 mt-1.5">
+          <span className="text-2xl font-semibold tabular-nums text-foreground">
+            {value}
+          </span>
+          <span className="text-sm text-muted-foreground">{unit}</span>
+        </div>
+
+        <Sparkline data={history} color={accent.color} />
+
+        <div className="w-full mt-3 px-1">
+          <div
+            className="h-1 w-full rounded-full overflow-hidden"
+            style={{ backgroundColor: `color-mix(in oklch, ${statusColor}, transparent 85%)` }}
+          >
+            <div
+              className="h-full rounded-full transition-all duration-1000 ease-out"
+              style={{ width: `${score}%`, backgroundColor: statusColor }}
+            />
+          </div>
+        </div>
+      </CardContent>
+    </Card>
   );
 }

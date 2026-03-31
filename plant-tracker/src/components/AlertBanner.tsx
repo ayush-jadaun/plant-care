@@ -1,6 +1,9 @@
 "use client";
 
 import { useState } from "react";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Button } from "@/components/ui/button";
+import { AlertTriangle, X } from "lucide-react";
 
 interface AlertBannerProps {
   alerts: string[];
@@ -25,22 +28,27 @@ export default function AlertBanner({ alerts }: AlertBannerProps) {
   }
 
   return (
-    <div className="w-full">
+    <div className="space-y-2">
       {visibleAlerts.map((alert) => (
-        <div
+        <Alert
           key={alert}
-          className="flex items-center gap-3 px-4 py-3 mb-2 rounded-xl bg-red-500/10 border border-red-500/30 text-red-400 animate-pulse"
+          className="border-sensor-rose/20 bg-sensor-rose/5"
         >
-          <span className="text-xl">&#9888;</span>
-          <span className="text-sm font-medium flex-1">{alert}</span>
-          <button
-            onClick={() => dismiss(alert)}
-            className="text-red-400/50 hover:text-red-400 text-lg leading-none px-1"
-            title="Dismiss for 60s"
-          >
-            &times;
-          </button>
-        </div>
+          <div className="flex items-center gap-3">
+            <AlertTriangle className="size-4 text-sensor-rose shrink-0" />
+            <AlertDescription className="flex-1 text-sensor-rose/90 text-sm">
+              {alert}
+            </AlertDescription>
+            <Button
+              variant="ghost"
+              size="icon-xs"
+              onClick={() => dismiss(alert)}
+              className="text-sensor-rose/40 hover:text-sensor-rose hover:bg-sensor-rose/10"
+            >
+              <X className="size-3.5" />
+            </Button>
+          </div>
+        </Alert>
       ))}
     </div>
   );
