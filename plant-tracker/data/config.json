@@ -1,0 +1,28 @@
+{
+  "plantName": "My Plant",
+  "thresholds": {
+    "temp": {
+      "min": 18,
+      "max": 28
+    },
+    "humidity": {
+      "min": 40,
+      "max": 70
+    },
+    "soilMoisture": {
+      "min": 40,
+      "max": 70
+    },
+    "lux": {
+      "min": 200,
+      "max": 1000
+    }
+  },
+  "weights": {
+    "soilMoisture": 0.35,
+    "temp": 0.25,
+    "humidity": 0.2,
+    "lux": 0.2
+  },
+  "touchSound": "giggle"
+}

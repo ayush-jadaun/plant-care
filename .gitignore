@@ -1,0 +1,25 @@
+# Dependencies
+node_modules/
+
+# Next.js
+.next/
+out/
+
+# Environment
+.env*
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Data files (generated at runtime)
+plant-tracker/data/*.json
+plant-tracker/data/touches/
+plant-tracker/data/chats/
+plant-tracker/data/archive/
+!plant-tracker/data/config.json
+
+# Debug
+npm-debug.log*
+*.tsbuildinfo
+next-env.d.ts
