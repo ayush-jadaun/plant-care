@@ -1,6 +1,13 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Separator } from "@/components/ui/separator";
+import { Settings, Leaf, SlidersHorizontal, Music, Save, Check, Loader2 } from "lucide-react";
 
 interface Config {
   plantName: string;
@@ -20,10 +27,10 @@ interface Config {
 }
 
 const SOUND_OPTIONS = [
-  { value: "chime", label: "Chime 🔔" },
-  { value: "boop", label: "Boop 🎵" },
-  { value: "nature", label: "Nature 🌿" },
-  { value: "giggle", label: "Giggle 😄" },
+  { value: "chime", label: "Chime", icon: "🔔" },
+  { value: "boop", label: "Boop", icon: "🎵" },
+  { value: "nature", label: "Nature", icon: "🌿" },
+  { value: "giggle", label: "Giggle", icon: "😄" },
 ];
 
 function RangeInput({
@@ -33,6 +40,7 @@ function RangeInput({
   onMinChange,
   onMaxChange,
   unit,
+  color,
 }: {
   label: string;
   min: number;
@@ -40,25 +48,32 @@ function RangeInput({
   onMinChange: (v: number) => void;
   onMaxChange: (v: number) => void;
   unit: string;
+  color: string;
 }) {
   return (
-    <div className="flex items-center gap-4 py-3 border-b border-gray-800/50">
-      <span className="w-32 text-sm text-gray-300">{label}</span>
-      <div className="flex items-center gap-2">
-        <input
+    <div className="flex items-center gap-4 py-3">
+      <div className="flex items-center gap-2.5 w-36">
+        <span
+          className="size-2 rounded-full shrink-0"
+          style={{ background: color }}
+        />
+        <Label className="text-sm text-foreground/80">{label}</Label>
+      </div>
+      <div className="flex items-center gap-2 flex-1">
+        <Input
           type="number"
           value={min}
           onChange={(e) => onMinChange(Number(e.target.value))}
-          className="w-20 bg-gray-800 rounded-lg px-3 py-1.5 text-sm text-white outline-none focus:ring-2 focus:ring-green-500/50"
+          className="w-20 h-8 bg-secondary/50 border-border/50 text-sm tabular-nums"
         />
-        <span className="text-gray-500 text-sm">to</span>
-        <input
+        <span className="text-xs text-muted-foreground">to</span>
+        <Input
           type="number"
           value={max}
           onChange={(e) => onMaxChange(Number(e.target.value))}
-          className="w-20 bg-gray-800 rounded-lg px-3 py-1.5 text-sm text-white outline-none focus:ring-2 focus:ring-green-500/50"
+          className="w-20 h-8 bg-secondary/50 border-border/50 text-sm tabular-nums"
         />
-        <span className="text-xs text-gray-500">{unit}</span>
+        <span className="text-xs text-muted-foreground font-mono">{unit}</span>
       </div>
     </div>
   );
@@ -90,140 +105,200 @@ export default function SettingsPage() {
   }
 
   if (!config) {
-    return <div className="text-center text-gray-500 py-20">Loading settings...</div>;
+    return (
+      <div className="flex items-center justify-center py-20">
+        <Loader2 className="size-5 text-muted-foreground animate-spin" />
+      </div>
+    );
   }
 
   return (
-    <div className="max-w-2xl mx-auto space-y-8">
-      <h1 className="text-2xl font-bold">Settings</h1>
+    <div className="max-w-2xl mx-auto space-y-6">
+      <div className="flex items-center gap-3">
+        <div className="flex items-center justify-center size-8 rounded-lg bg-primary/10 ring-1 ring-primary/20">
+          <Settings className="size-4 text-primary" />
+        </div>
+        <h1 className="text-lg font-semibold tracking-tight">Settings</h1>
+      </div>
 
-      <div className="rounded-2xl bg-gray-900/50 border border-gray-800 p-6">
-        <h2 className="text-lg font-semibold mb-4">Plant Identity</h2>
-        <div className="flex items-center gap-4">
-          <label className="text-sm text-gray-400">Name</label>
-          <input
-            type="text"
-            value={config.plantName}
-            onChange={(e) => setConfig({ ...config, plantName: e.target.value })}
-            className="flex-1 bg-gray-800 rounded-xl px-4 py-2 text-white outline-none focus:ring-2 focus:ring-green-500/50"
+      <Card className="border-border/50 bg-card/50 backdrop-blur-sm">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-sm font-medium">
+            <Leaf className="size-4 text-muted-foreground" />
+            Plant Identity
+          </CardTitle>
+          <CardDescription>Give your plant a name</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="flex items-center gap-3">
+            <Label htmlFor="plantName" className="text-sm text-muted-foreground shrink-0">
+              Name
+            </Label>
+            <Input
+              id="plantName"
+              type="text"
+              value={config.plantName}
+              onChange={(e) => setConfig({ ...config, plantName: e.target.value })}
+              className="bg-secondary/50 border-border/50"
+            />
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card className="border-border/50 bg-card/50 backdrop-blur-sm">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-sm font-medium">
+            <SlidersHorizontal className="size-4 text-muted-foreground" />
+            Ideal Ranges
+          </CardTitle>
+          <CardDescription>Set the optimal range for each sensor</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-0">
+          <RangeInput
+            label="Temperature"
+            min={config.thresholds.temp.min}
+            max={config.thresholds.temp.max}
+            onMinChange={(v) =>
+              setConfig({
+                ...config,
+                thresholds: { ...config.thresholds, temp: { ...config.thresholds.temp, min: v } },
+              })
+            }
+            onMaxChange={(v) =>
+              setConfig({
+                ...config,
+                thresholds: { ...config.thresholds, temp: { ...config.thresholds.temp, max: v } },
+              })
+            }
+            unit="°C"
+            color="#f59e0b"
           />
-        </div>
-      </div>
+          <Separator className="bg-border/30" />
+          <RangeInput
+            label="Humidity"
+            min={config.thresholds.humidity.min}
+            max={config.thresholds.humidity.max}
+            onMinChange={(v) =>
+              setConfig({
+                ...config,
+                thresholds: {
+                  ...config.thresholds,
+                  humidity: { ...config.thresholds.humidity, min: v },
+                },
+              })
+            }
+            onMaxChange={(v) =>
+              setConfig({
+                ...config,
+                thresholds: {
+                  ...config.thresholds,
+                  humidity: { ...config.thresholds.humidity, max: v },
+                },
+              })
+            }
+            unit="%"
+            color="#38bdf8"
+          />
+          <Separator className="bg-border/30" />
+          <RangeInput
+            label="Soil Moisture"
+            min={config.thresholds.soilMoisture.min}
+            max={config.thresholds.soilMoisture.max}
+            onMinChange={(v) =>
+              setConfig({
+                ...config,
+                thresholds: {
+                  ...config.thresholds,
+                  soilMoisture: { ...config.thresholds.soilMoisture, min: v },
+                },
+              })
+            }
+            onMaxChange={(v) =>
+              setConfig({
+                ...config,
+                thresholds: {
+                  ...config.thresholds,
+                  soilMoisture: { ...config.thresholds.soilMoisture, max: v },
+                },
+              })
+            }
+            unit="%"
+            color="#a78bfa"
+          />
+          <Separator className="bg-border/30" />
+          <RangeInput
+            label="Light"
+            min={config.thresholds.lux.min}
+            max={config.thresholds.lux.max}
+            onMinChange={(v) =>
+              setConfig({
+                ...config,
+                thresholds: { ...config.thresholds, lux: { ...config.thresholds.lux, min: v } },
+              })
+            }
+            onMaxChange={(v) =>
+              setConfig({
+                ...config,
+                thresholds: { ...config.thresholds, lux: { ...config.thresholds.lux, max: v } },
+              })
+            }
+            unit="lux"
+            color="#fb923c"
+          />
+        </CardContent>
+      </Card>
 
-      <div className="rounded-2xl bg-gray-900/50 border border-gray-800 p-6">
-        <h2 className="text-lg font-semibold mb-4">Ideal Ranges</h2>
-        <RangeInput
-          label="🌡️ Temperature"
-          min={config.thresholds.temp.min}
-          max={config.thresholds.temp.max}
-          onMinChange={(v) =>
-            setConfig({
-              ...config,
-              thresholds: { ...config.thresholds, temp: { ...config.thresholds.temp, min: v } },
-            })
-          }
-          onMaxChange={(v) =>
-            setConfig({
-              ...config,
-              thresholds: { ...config.thresholds, temp: { ...config.thresholds.temp, max: v } },
-            })
-          }
-          unit="°C"
-        />
-        <RangeInput
-          label="💧 Humidity"
-          min={config.thresholds.humidity.min}
-          max={config.thresholds.humidity.max}
-          onMinChange={(v) =>
-            setConfig({
-              ...config,
-              thresholds: {
-                ...config.thresholds,
-                humidity: { ...config.thresholds.humidity, min: v },
-              },
-            })
-          }
-          onMaxChange={(v) =>
-            setConfig({
-              ...config,
-              thresholds: {
-                ...config.thresholds,
-                humidity: { ...config.thresholds.humidity, max: v },
-              },
-            })
-          }
-          unit="%"
-        />
-        <RangeInput
-          label="🌍 Soil Moisture"
-          min={config.thresholds.soilMoisture.min}
-          max={config.thresholds.soilMoisture.max}
-          onMinChange={(v) =>
-            setConfig({
-              ...config,
-              thresholds: {
-                ...config.thresholds,
-                soilMoisture: { ...config.thresholds.soilMoisture, min: v },
-              },
-            })
-          }
-          onMaxChange={(v) =>
-            setConfig({
-              ...config,
-              thresholds: {
-                ...config.thresholds,
-                soilMoisture: { ...config.thresholds.soilMoisture, max: v },
-              },
-            })
-          }
-          unit="%"
-        />
-        <RangeInput
-          label="☀️ Light"
-          min={config.thresholds.lux.min}
-          max={config.thresholds.lux.max}
-          onMinChange={(v) =>
-            setConfig({
-              ...config,
-              thresholds: { ...config.thresholds, lux: { ...config.thresholds.lux, min: v } },
-            })
-          }
-          onMaxChange={(v) =>
-            setConfig({
-              ...config,
-              thresholds: { ...config.thresholds, lux: { ...config.thresholds.lux, max: v } },
-            })
-          }
-          unit="lux"
-        />
-      </div>
+      <Card className="border-border/50 bg-card/50 backdrop-blur-sm">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-sm font-medium">
+            <Music className="size-4 text-muted-foreground" />
+            Touch Reaction Sound
+          </CardTitle>
+          <CardDescription>Sound that plays when you touch the plant sensor</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-2 gap-2">
+            {SOUND_OPTIONS.map((opt) => (
+              <button
+                key={opt.value}
+                onClick={() => setConfig({ ...config, touchSound: opt.value })}
+                className={`flex items-center gap-2.5 px-3.5 py-2.5 rounded-lg text-sm font-medium transition-all border ${
+                  config.touchSound === opt.value
+                    ? "border-primary/40 bg-primary/10 text-primary"
+                    : "border-border/50 bg-secondary/30 text-muted-foreground hover:text-foreground hover:border-border"
+                }`}
+              >
+                <span className="text-base">{opt.icon}</span>
+                {opt.label}
+              </button>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
 
-      <div className="rounded-2xl bg-gray-900/50 border border-gray-800 p-6">
-        <h2 className="text-lg font-semibold mb-4">Touch Reaction Sound</h2>
-        <div className="grid grid-cols-2 gap-3">
-          {SOUND_OPTIONS.map((opt) => (
-            <button
-              key={opt.value}
-              onClick={() => setConfig({ ...config, touchSound: opt.value })}
-              className={`px-4 py-3 rounded-xl text-sm font-medium transition-all ${
-                config.touchSound === opt.value
-                  ? "bg-green-600/20 border-2 border-green-500 text-green-300"
-                  : "bg-gray-800 border-2 border-transparent text-gray-400 hover:text-white"
-              }`}
-            >
-              {opt.label}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      <button
+      <Button
         onClick={save}
         disabled={saving}
-        className="w-full py-3 rounded-xl bg-green-600 hover:bg-green-500 disabled:opacity-50 text-white font-medium transition-colors"
+        size="lg"
+        className="w-full"
       >
-        {saving ? "Saving..." : saved ? "Saved!" : "Save Settings"}
-      </button>
+        {saving ? (
+          <>
+            <Loader2 className="size-4 animate-spin" />
+            Saving...
+          </>
+        ) : saved ? (
+          <>
+            <Check className="size-4" />
+            Saved!
+          </>
+        ) : (
+          <>
+            <Save className="size-4" />
+            Save Settings
+          </>
+        )}
+      </Button>
     </div>
   );
 }
