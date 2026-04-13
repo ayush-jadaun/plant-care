@@ -9,6 +9,7 @@ import {
   Tooltip,
   ResponsiveContainer,
 } from "recharts";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 interface TrendChartProps {
   data: { timestamp: number; value: number }[];
@@ -32,41 +33,60 @@ export default function TrendChart({ data, label, color, unit }: TrendChartProps
     data[data.length - 1].timestamp - data[0].timestamp > 86400;
 
   return (
-    <div className="rounded-2xl bg-gray-900/50 border border-gray-800 p-4">
-      <h3 className="text-sm font-medium text-gray-400 mb-4">{label}</h3>
-      <ResponsiveContainer width="100%" height={200}>
-        <LineChart data={data}>
-          <CartesianGrid strokeDasharray="3 3" stroke="#1f2937" />
-          <XAxis
-            dataKey="timestamp"
-            tickFormatter={isMultiDay ? formatDate : formatTime}
-            stroke="#4b5563"
-            tick={{ fontSize: 11 }}
-          />
-          <YAxis stroke="#4b5563" tick={{ fontSize: 11 }} />
-          <Tooltip
-            contentStyle={{
-              background: "#111827",
-              border: "1px solid #374151",
-              borderRadius: "12px",
-              fontSize: "12px",
-            }}
-            labelFormatter={(val) => {
-              const d = new Date(Number(val) * 1000);
-              return d.toLocaleString();
-            }}
-            formatter={(val) => [`${Number(val).toFixed(1)} ${unit}`, label]}
-          />
-          <Line
-            type="monotone"
-            dataKey="value"
-            stroke={color}
-            strokeWidth={2}
-            dot={false}
-            activeDot={{ r: 4 }}
-          />
-        </LineChart>
-      </ResponsiveContainer>
-    </div>
+    <Card className="border-border/50 bg-card/50 backdrop-blur-sm">
+      <CardHeader className="pb-0">
+        <CardTitle className="text-sm font-medium text-muted-foreground">{label}</CardTitle>
+      </CardHeader>
+      <CardContent className="pt-4">
+        <ResponsiveContainer width="100%" height={200}>
+          <LineChart data={data}>
+            <defs>
+              <linearGradient id={`gradient-${label}`} x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor={color} stopOpacity={0.1} />
+                <stop offset="100%" stopColor={color} stopOpacity={0} />
+              </linearGradient>
+            </defs>
+            <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" strokeOpacity={0.5} />
+            <XAxis
+              dataKey="timestamp"
+              tickFormatter={isMultiDay ? formatDate : formatTime}
+              stroke="var(--muted-foreground)"
+              tick={{ fontSize: 11 }}
+              tickLine={false}
+              axisLine={false}
+            />
+            <YAxis
+              stroke="var(--muted-foreground)"
+              tick={{ fontSize: 11 }}
+              tickLine={false}
+              axisLine={false}
+            />
+            <Tooltip
+              contentStyle={{
+                background: "var(--card)",
+                border: "1px solid var(--border)",
+                borderRadius: "8px",
+                fontSize: "12px",
+                boxShadow: "0 4px 24px rgba(0,0,0,0.3)",
+              }}
+              labelFormatter={(val) => {
+                const d = new Date(Number(val) * 1000);
+                return d.toLocaleString();
+              }}
+              formatter={(val) => [`${Number(val).toFixed(1)} ${unit}`, label]}
+            />
+            <Line
+              type="monotone"
+              dataKey="value"
+              stroke={color}
+              strokeWidth={2}
+              dot={false}
+              activeDot={{ r: 4, strokeWidth: 0, fill: color }}
+              fill={`url(#gradient-${label})`}
+            />
+          </LineChart>
+        </ResponsiveContainer>
+      </CardContent>
+    </Card>
   );
 }

@@ -3,6 +3,18 @@
 import { useState, useEffect } from "react";
 import TrendChart from "@/components/TrendChart";
 import { soilAnalogToPercent } from "@/lib/thresholds";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { Badge } from "@/components/ui/badge";
+import { BarChart3, Loader2 } from "lucide-react";
 
 interface Reading {
   timestamp: number;
@@ -24,6 +36,15 @@ const RANGES = [
   { label: "7 days", value: "7d" },
   { label: "30 days", value: "30d" },
 ];
+
+/* Premium chart colors */
+const CHART_COLORS = {
+  temp: "#f59e0b",
+  humidity: "#38bdf8",
+  soil: "#a78bfa",
+  light: "#fb923c",
+  health: "#34d399",
+};
 
 export default function AnalyticsPage() {
   const [range, setRange] = useState("24h");
@@ -55,43 +76,60 @@ export default function AnalyticsPage() {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold">Analytics</h1>
-        <div className="flex gap-2">
+        <div className="flex items-center gap-3">
+          <div className="flex items-center justify-center size-8 rounded-lg bg-primary/10 ring-1 ring-primary/20">
+            <BarChart3 className="size-4 text-primary" />
+          </div>
+          <h1 className="text-lg font-semibold tracking-tight">Analytics</h1>
+        </div>
+        <div className="flex gap-1 p-0.5 rounded-lg bg-secondary/50 border border-border/50">
           {RANGES.map((r) => (
-            <button
+            <Button
               key={r.value}
+              variant={range === r.value ? "default" : "ghost"}
+              size="sm"
               onClick={() => setRange(r.value)}
-              className={`px-4 py-2 rounded-xl text-sm font-medium transition-colors ${
+              className={
                 range === r.value
-                  ? "bg-green-600 text-white"
-                  : "bg-gray-800 text-gray-400 hover:text-white"
-              }`}
+                  ? "bg-primary text-primary-foreground"
+                  : "text-muted-foreground hover:text-foreground"
+              }
             >
               {r.label}
-            </button>
+            </Button>
           ))}
         </div>
       </div>
 
       {loading ? (
-        <div className="text-center text-gray-500 py-20">Loading data...</div>
+        <Card className="border-border/50 bg-card/50">
+          <CardContent className="flex flex-col items-center justify-center py-20">
+            <Loader2 className="size-5 text-muted-foreground animate-spin mb-3" />
+            <p className="text-sm text-muted-foreground">Loading data...</p>
+          </CardContent>
+        </Card>
       ) : readings.length === 0 ? (
-        <div className="text-center text-gray-500 py-20">
-          No data yet. Connect your ESP32 to start collecting readings.
-        </div>
+        <Card className="border-border/50 bg-card/50">
+          <CardContent className="flex flex-col items-center justify-center py-20">
+            <BarChart3 className="size-8 text-muted-foreground/40 mb-3" />
+            <p className="text-sm text-muted-foreground">
+              No data yet. Connect your ESP32 to start collecting readings.
+            </p>
+          </CardContent>
+        </Card>
       ) : (
         <>
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
             <TrendChart
               data={readings.map((r) => ({ timestamp: r.timestamp, value: r.temp }))}
               label="Temperature"
-              color="#f59e0b"
+              color={CHART_COLORS.temp}
               unit="°C"
             />
             <TrendChart
               data={readings.map((r) => ({ timestamp: r.timestamp, value: r.humidity }))}
               label="Humidity"
-              color="#3b82f6"
+              color={CHART_COLORS.humidity}
               unit="%"
             />
             <TrendChart
@@ -100,13 +138,13 @@ export default function AnalyticsPage() {
                 value: soilAnalogToPercent(r.soilAnalog),
               }))}
               label="Soil Moisture"
-              color="#8b5cf6"
+              color={CHART_COLORS.soil}
               unit="%"
             />
             <TrendChart
               data={readings.map((r) => ({ timestamp: r.timestamp, value: r.lux }))}
               label="Light"
-              color="#f97316"
+              color={CHART_COLORS.light}
               unit="lux"
             />
           </div>
@@ -116,63 +154,89 @@ export default function AnalyticsPage() {
               .filter((r) => r.healthScore !== undefined)
               .map((r) => ({ timestamp: r.timestamp, value: r.healthScore }))}
             label="Health Score"
-            color="#22c55e"
+            color={CHART_COLORS.health}
             unit="%"
           />
         </>
       )}
 
       {summary && (
-        <div className="rounded-2xl bg-gray-900/50 border border-gray-800 p-6">
-          <h2 className="text-lg font-semibold mb-4">Today&apos;s Summary</h2>
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="text-gray-400 border-b border-gray-800">
-                  <th className="text-left py-2">Sensor</th>
-                  <th className="text-right py-2">Avg</th>
-                  <th className="text-right py-2">Min</th>
-                  <th className="text-right py-2">Max</th>
-                </tr>
-              </thead>
-              <tbody>
+        <Card className="border-border/50 bg-card/50 backdrop-blur-sm">
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-sm font-medium">Today&apos;s Summary</CardTitle>
+              <Badge variant="secondary" className="text-xs font-mono">
+                {summary.count} readings
+              </Badge>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <Table>
+              <TableHeader>
+                <TableRow className="border-border/50 hover:bg-transparent">
+                  <TableHead className="text-muted-foreground">Sensor</TableHead>
+                  <TableHead className="text-right text-muted-foreground">Avg</TableHead>
+                  <TableHead className="text-right text-muted-foreground">Min</TableHead>
+                  <TableHead className="text-right text-muted-foreground">Max</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
                 {summary.summary.temp && (
-                  <tr className="border-b border-gray-800/50">
-                    <td className="py-2">🌡️ Temperature</td>
-                    <td className="text-right">{summary.summary.temp.avg}°C</td>
-                    <td className="text-right">{summary.summary.temp.min}°C</td>
-                    <td className="text-right">{summary.summary.temp.max}°C</td>
-                  </tr>
+                  <TableRow className="border-border/30">
+                    <TableCell className="font-medium">
+                      <span className="flex items-center gap-2">
+                        <span className="size-2 rounded-full" style={{ background: CHART_COLORS.temp }} />
+                        Temperature
+                      </span>
+                    </TableCell>
+                    <TableCell className="text-right tabular-nums">{summary.summary.temp.avg}°C</TableCell>
+                    <TableCell className="text-right tabular-nums text-muted-foreground">{summary.summary.temp.min}°C</TableCell>
+                    <TableCell className="text-right tabular-nums text-muted-foreground">{summary.summary.temp.max}°C</TableCell>
+                  </TableRow>
                 )}
                 {summary.summary.humidity && (
-                  <tr className="border-b border-gray-800/50">
-                    <td className="py-2">💧 Humidity</td>
-                    <td className="text-right">{summary.summary.humidity.avg}%</td>
-                    <td className="text-right">{summary.summary.humidity.min}%</td>
-                    <td className="text-right">{summary.summary.humidity.max}%</td>
-                  </tr>
+                  <TableRow className="border-border/30">
+                    <TableCell className="font-medium">
+                      <span className="flex items-center gap-2">
+                        <span className="size-2 rounded-full" style={{ background: CHART_COLORS.humidity }} />
+                        Humidity
+                      </span>
+                    </TableCell>
+                    <TableCell className="text-right tabular-nums">{summary.summary.humidity.avg}%</TableCell>
+                    <TableCell className="text-right tabular-nums text-muted-foreground">{summary.summary.humidity.min}%</TableCell>
+                    <TableCell className="text-right tabular-nums text-muted-foreground">{summary.summary.humidity.max}%</TableCell>
+                  </TableRow>
                 )}
                 {summary.summary.soilAnalog && (
-                  <tr className="border-b border-gray-800/50">
-                    <td className="py-2">🌍 Soil (raw)</td>
-                    <td className="text-right">{summary.summary.soilAnalog.avg}</td>
-                    <td className="text-right">{summary.summary.soilAnalog.min}</td>
-                    <td className="text-right">{summary.summary.soilAnalog.max}</td>
-                  </tr>
+                  <TableRow className="border-border/30">
+                    <TableCell className="font-medium">
+                      <span className="flex items-center gap-2">
+                        <span className="size-2 rounded-full" style={{ background: CHART_COLORS.soil }} />
+                        Soil (raw)
+                      </span>
+                    </TableCell>
+                    <TableCell className="text-right tabular-nums">{summary.summary.soilAnalog.avg}</TableCell>
+                    <TableCell className="text-right tabular-nums text-muted-foreground">{summary.summary.soilAnalog.min}</TableCell>
+                    <TableCell className="text-right tabular-nums text-muted-foreground">{summary.summary.soilAnalog.max}</TableCell>
+                  </TableRow>
                 )}
                 {summary.summary.lux && (
-                  <tr className="border-b border-gray-800/50">
-                    <td className="py-2">☀️ Light</td>
-                    <td className="text-right">{summary.summary.lux.avg} lux</td>
-                    <td className="text-right">{summary.summary.lux.min} lux</td>
-                    <td className="text-right">{summary.summary.lux.max} lux</td>
-                  </tr>
+                  <TableRow className="border-border/30">
+                    <TableCell className="font-medium">
+                      <span className="flex items-center gap-2">
+                        <span className="size-2 rounded-full" style={{ background: CHART_COLORS.light }} />
+                        Light
+                      </span>
+                    </TableCell>
+                    <TableCell className="text-right tabular-nums">{summary.summary.lux.avg} lux</TableCell>
+                    <TableCell className="text-right tabular-nums text-muted-foreground">{summary.summary.lux.min} lux</TableCell>
+                    <TableCell className="text-right tabular-nums text-muted-foreground">{summary.summary.lux.max} lux</TableCell>
+                  </TableRow>
                 )}
-              </tbody>
-            </table>
-          </div>
-          <p className="text-xs text-gray-500 mt-3">{summary.count} readings today</p>
-        </div>
+              </TableBody>
+            </Table>
+          </CardContent>
+        </Card>
       )}
     </div>
   );

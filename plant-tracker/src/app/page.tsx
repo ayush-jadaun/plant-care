@@ -8,6 +8,10 @@ import PlantAvatar from "@/components/PlantAvatar";
 import SensorCard from "@/components/SensorCard";
 import HealthScore from "@/components/HealthScore";
 import AlertBanner from "@/components/AlertBanner";
+import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Volume2, VolumeX, Wifi, WifiOff, MessageSquare, Leaf } from "lucide-react";
 
 interface HistoryEntry {
   temp: number;
@@ -47,14 +51,22 @@ export default function DashboardPage() {
 
   if (!connected && !sensorData) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-[60vh] text-gray-400">
-        <span className="text-6xl mb-4">🌱</span>
-        <p className="text-lg">Waiting for plant to connect...</p>
-        <p className="text-sm mt-2">Make sure the ESP32 is powered on and connected to the same network.</p>
-        <div className="mt-4 flex items-center gap-2">
-          <span className="w-2 h-2 rounded-full bg-yellow-500 animate-pulse" />
-          <span className="text-sm text-yellow-500">Listening for sensor data</span>
-        </div>
+      <div className="flex flex-col items-center justify-center min-h-[60vh]">
+        <Card className="border-border/50 bg-card/50 backdrop-blur-sm max-w-sm w-full">
+          <CardContent className="flex flex-col items-center py-12">
+            <div className="flex items-center justify-center size-16 rounded-2xl bg-primary/10 ring-1 ring-primary/20 mb-5">
+              <Leaf className="size-8 text-primary" />
+            </div>
+            <p className="text-base font-medium text-foreground">Waiting for plant to connect...</p>
+            <p className="text-sm text-muted-foreground mt-2 text-center leading-relaxed">
+              Make sure the ESP32 is powered on and connected to the same network.
+            </p>
+            <Badge variant="outline" className="mt-5 gap-1.5 border-sensor-amber/30 text-sensor-amber bg-sensor-amber/5">
+              <span className="size-1.5 rounded-full bg-sensor-amber animate-pulse" />
+              Listening for sensor data
+            </Badge>
+          </CardContent>
+        </Card>
       </div>
     );
   }
@@ -63,21 +75,33 @@ export default function DashboardPage() {
     <div className="space-y-6">
       {health && <AlertBanner alerts={health.alerts} />}
 
-      <div className="flex items-center gap-4 justify-end">
-        <button
-          onClick={() => setMuted(!muted)}
-          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
-            muted
-              ? "bg-red-500/10 border border-red-500/30 text-red-400"
-              : "bg-green-500/10 border border-green-500/30 text-green-400"
-          }`}
-        >
-          <span>{muted ? "🔇" : "🔊"}</span>
-          {muted ? "Muted" : "Sound On"}
-        </button>
+      <div className="flex items-center justify-between">
+        <h1 className="text-lg font-semibold tracking-tight">{plantName}</h1>
         <div className="flex items-center gap-2">
-          <span className={`w-2 h-2 rounded-full ${connected ? "bg-green-500" : "bg-red-500"}`} />
-          <span className="text-xs text-gray-500">{connected ? "Connected" : "Disconnected"}</span>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setMuted(!muted)}
+            className={
+              muted
+                ? "border-sensor-rose/20 text-sensor-rose hover:bg-sensor-rose/10 hover:text-sensor-rose"
+                : "border-sensor-green/20 text-sensor-green hover:bg-sensor-green/10 hover:text-sensor-green"
+            }
+          >
+            {muted ? <VolumeX className="size-3.5" /> : <Volume2 className="size-3.5" />}
+            {muted ? "Muted" : "Sound"}
+          </Button>
+          <Badge
+            variant="outline"
+            className={
+              connected
+                ? "gap-1.5 border-sensor-green/20 text-sensor-green bg-sensor-green/5"
+                : "gap-1.5 border-sensor-rose/20 text-sensor-rose bg-sensor-rose/5"
+            }
+          >
+            {connected ? <Wifi className="size-3" /> : <WifiOff className="size-3" />}
+            {connected ? "Connected" : "Disconnected"}
+          </Badge>
         </div>
       </div>
 
@@ -89,7 +113,7 @@ export default function DashboardPage() {
         muted={muted}
       />
 
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         <SensorCard
           label="Temperature"
           value={sensorData ? sensorData.temp.toFixed(1) : "--"}
@@ -124,14 +148,17 @@ export default function DashboardPage() {
         />
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         <HealthScore score={health?.score ?? 0} state={health?.state ?? "okay"} />
-        {/* Chat panel placeholder — will be added when Gemini integration is complete */}
-        <div className="flex flex-col items-center justify-center h-[300px] rounded-2xl bg-gray-900/50 border border-gray-800 text-gray-500">
-          <span className="text-4xl mb-3">💬</span>
-          <p className="text-sm">Chat with {plantName}</p>
-          <p className="text-xs mt-1 text-gray-600">Coming soon...</p>
-        </div>
+        <Card className="border-border/50 bg-card/50 backdrop-blur-sm">
+          <CardContent className="flex flex-col items-center justify-center h-[200px]">
+            <div className="flex items-center justify-center size-12 rounded-xl bg-muted/50 mb-3">
+              <MessageSquare className="size-5 text-muted-foreground" />
+            </div>
+            <p className="text-sm font-medium text-muted-foreground">Chat with {plantName}</p>
+            <p className="text-xs text-muted-foreground/60 mt-1">Coming soon...</p>
+          </CardContent>
+        </Card>
       </div>
     </div>
   );
