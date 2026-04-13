@@ -81,10 +81,29 @@ export default function PlantAvatar({ state, touchTriggered, onTouchAnimationEnd
   const playAmbientSound = useCallback((soundFile: string, volume: number) => {
     if (muted) return;
     try {
+      // Stop any currently playing ambient sound before starting a new one
+      if (ambientSoundRef.current) {
+        ambientSoundRef.current.pause();
+        ambientSoundRef.current.currentTime = 0;
+      }
       ambientSoundRef.current = new Audio(`/sounds/${soundFile}.mp3`);
       ambientSoundRef.current.volume = volume;
       ambientSoundRef.current.play().catch(() => {});
     } catch {}
+  }, [muted]);
+
+  // When muted changes to true, stop all currently playing sounds
+  useEffect(() => {
+    if (muted) {
+      if (ambientSoundRef.current) {
+        ambientSoundRef.current.pause();
+        ambientSoundRef.current.currentTime = 0;
+      }
+      if (touchSoundRef.current) {
+        touchSoundRef.current.pause();
+        touchSoundRef.current.currentTime = 0;
+      }
+    }
   }, [muted]);
 
   useEffect(() => {

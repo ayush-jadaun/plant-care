@@ -4,12 +4,21 @@
 #include <DHT.h>
 #include <Wire.h>
 #include <BH1750.h>
+#include "soc/soc.h"
+#include "soc/rtc_cntl_reg.h"
 
 // ============ CONFIGURATION ============
 #define WIFI_SSID     "OnePlus Nord 4"
 #define WIFI_PASSWORD "datahelper"
-#define SERVER_IP     "10.48.182.175"  // Your laptop's IP on the network
+#define SERVER_IP     "10.204.156.175"  // Your laptop's IP on the network
 #define SERVER_PORT   3000
+
+// Feature flags — set to 0 to disable a sensor entirely
+// Set to 1 ONLY when the sensor is physically wired up
+#define ENABLE_BH1750 1   // Disabled — I2C bus is stuck, fix wiring first
+#define ENABLE_DHT22  1
+#define ENABLE_SOIL   1
+#define ENABLE_TOUCH  1
 
 // ============ PIN DEFINITIONS ============
 #define DHT_PIN       4       // DHT22 data pin
@@ -34,6 +43,7 @@ unsigned long lastSensorRead = 0;
 unsigned long lastReconnect = 0;
 bool wsConnected = false;
 unsigned long lastTouchTime = 0;
+bool bh1750Present = false;
 
 // Touch interrupt handler
 void IRAM_ATTR onTouch() {
@@ -41,32 +51,93 @@ void IRAM_ATTR onTouch() {
 }
 
 void setup() {
+  // Disable brownout detector to prevent resets from voltage dips
+  WRITE_PERI_REG(RTC_CNTL_BROWN_OUT_REG, 0);
+
   Serial.begin(115200);
-  Serial.println("\n=== Plant Health Tracker ===");
+  delay(1000);  // Let serial stabilize
+  Serial.println();
+  Serial.println("=== Plant Health Tracker ===");
+  Serial.flush();
+  delay(500);
 
   // Pin setup
+  Serial.println("Setting up pins...");
+  Serial.flush();
+#if ENABLE_TOUCH
   pinMode(TOUCH_PIN, INPUT);
+#endif
+#if ENABLE_SOIL
   pinMode(SOIL_DO_PIN, INPUT);
+#endif
+  delay(100);
 
+#if ENABLE_TOUCH
   // Attach touch interrupt
+  Serial.println("Attaching touch interrupt...");
+  Serial.flush();
   attachInterrupt(digitalPinToInterrupt(TOUCH_PIN), onTouch, RISING);
+  delay(100);
+#endif
 
-  // Initialize sensors
+#if ENABLE_DHT22
+  // Initialize DHT
+  Serial.println("Initializing DHT22...");
+  Serial.flush();
   dht.begin();
+  delay(500);
+#else
+  Serial.println("DHT22 disabled, skipping");
+  Serial.flush();
+#endif
+
+#if ENABLE_BH1750
+  // Initialize I2C and BH1750 with safe probing
+  Serial.println("Initializing I2C...");
+  Serial.flush();
   Wire.begin();
-  if (lightMeter.begin(BH1750::CONTINUOUS_HIGH_RES_MODE)) {
-    Serial.println("BH1750 initialized");
+  delay(200);
+
+  // Probe for BH1750 at 0x23 first (safer than calling begin() blindly)
+  Serial.println("Probing BH1750 at 0x23...");
+  Serial.flush();
+  Wire.beginTransmission(0x23);
+  uint8_t err = Wire.endTransmission();
+  Serial.printf("I2C probe result: %d\n", err);
+  Serial.flush();
+
+  if (err == 0) {
+    Serial.println("BH1750 responding, calling begin()...");
+    Serial.flush();
+    if (lightMeter.begin(BH1750::CONTINUOUS_HIGH_RES_MODE)) {
+      Serial.println("BH1750 initialized OK");
+      bh1750Present = true;
+    } else {
+      Serial.println("BH1750 begin() failed");
+    }
   } else {
-    Serial.println("BH1750 init failed!");
+    Serial.println("BH1750 not responding on 0x23 — check wiring (SDA=21, SCL=22)");
   }
+  delay(200);
+#else
+  Serial.println("BH1750 disabled (ENABLE_BH1750 = 0), skipping I2C");
+  Serial.flush();
+#endif
 
   // Connect to WiFi
+  Serial.println("Starting WiFi connection...");
+  Serial.flush();
   connectWiFi();
 
   // Connect WebSocket
+  Serial.println("Starting WebSocket client...");
+  Serial.flush();
   webSocket.begin(SERVER_IP, SERVER_PORT, "/socket.io/?EIO=4&transport=websocket");
   webSocket.onEvent(webSocketEvent);
   webSocket.setReconnectInterval(RECONNECT_INTERVAL);
+
+  Serial.println("Setup complete!");
+  Serial.flush();
 }
 
 void connectWiFi() {
@@ -124,26 +195,37 @@ void webSocketEvent(WStype_t type, uint8_t* payload, size_t length) {
 }
 
 void sendSensorData() {
-  // Read DHT22 (sends -1 if not connected)
-  float temp = dht.readTemperature();
-  float humidity = dht.readHumidity();
-  bool dhtOk = !isnan(temp) && !isnan(humidity);
+  float temp = 0;
+  float humidity = 0;
+  bool dhtOk = false;
+
+#if ENABLE_DHT22
+  temp = dht.readTemperature();
+  humidity = dht.readHumidity();
+  dhtOk = !isnan(temp) && !isnan(humidity);
   if (!dhtOk) {
-    Serial.println("DHT read failed, sending defaults");
-    temp = -1;
-    humidity = -1;
+    Serial.println("DHT read failed, sending 0");
+    temp = 0;
+    humidity = 0;
+  }
+#endif
+
+  // Read BH1750 only if it was detected during setup
+  float lux = 0;
+  if (bh1750Present) {
+    lux = lightMeter.readLightLevel();
+    if (lux < 0) {
+      Serial.println("BH1750 read failed, sending 0");
+      lux = 0;
+    }
   }
 
-  // Read BH1750 (returns -1 or -2 if not connected)
-  float lux = lightMeter.readLightLevel();
-  if (lux < 0) {
-    Serial.println("BH1750 read failed, sending 0");
-    lux = 0;
-  }
-
-  // Read soil sensor (analog reads noise ~0-100 if not connected)
-  int soilAnalog = analogRead(SOIL_AO_PIN);
-  bool soilDry = digitalRead(SOIL_DO_PIN) == HIGH;
+  int soilAnalog = 0;
+  bool soilDry = false;
+#if ENABLE_SOIL
+  soilAnalog = analogRead(SOIL_AO_PIN);
+  soilDry = digitalRead(SOIL_DO_PIN) == HIGH;
+#endif
 
   // Build JSON — always send, even with partial data
   StaticJsonDocument<256> doc;

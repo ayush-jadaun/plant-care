@@ -8,10 +8,12 @@ import PlantAvatar from "@/components/PlantAvatar";
 import SensorCard from "@/components/SensorCard";
 import HealthScore from "@/components/HealthScore";
 import AlertBanner from "@/components/AlertBanner";
+import ChatPanel from "@/components/ChatPanel";
+import WeatherCard from "@/components/WeatherCard";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Volume2, VolumeX, Wifi, WifiOff, MessageSquare, Leaf } from "lucide-react";
+import { Volume2, VolumeX, Wifi, WifiOff, Leaf } from "lucide-react";
 
 interface HistoryEntry {
   temp: number;
@@ -150,16 +152,23 @@ export default function DashboardPage() {
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         <HealthScore score={health?.score ?? 0} state={health?.state ?? "okay"} />
-        <Card className="border-border/50 bg-card/50 backdrop-blur-sm">
-          <CardContent className="flex flex-col items-center justify-center h-[200px]">
-            <div className="flex items-center justify-center size-12 rounded-xl bg-muted/50 mb-3">
-              <MessageSquare className="size-5 text-muted-foreground" />
-            </div>
-            <p className="text-sm font-medium text-muted-foreground">Chat with {plantName}</p>
-            <p className="text-xs text-muted-foreground/60 mt-1">Coming soon...</p>
-          </CardContent>
-        </Card>
+        <WeatherCard
+          sensorData={
+            sensorData && health
+              ? {
+                  temp: sensorData.temp,
+                  humidity: sensorData.humidity,
+                  soilMoisture: soilAnalogToPercent(sensorData.soilAnalog),
+                  lux: sensorData.lux,
+                  healthScore: health.score,
+                }
+              : null
+          }
+          plantName={plantName}
+        />
       </div>
+
+      <ChatPanel sensorData={sensorData} healthResult={health} plantName={plantName} />
     </div>
   );
 }
